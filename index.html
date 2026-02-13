@@ -17,7 +17,7 @@
 <body>
     <div class="container">
         <h1>Duployan Translator</h1>
-        <p>Enter a simple sentence (English or Duployan symbols separated by spaces). Example: "Keep all the noise down" or "Keep your friends leave".</p>
+        <p>Enter English sentence (e.g. "Keep all the noise down"). Round-trip should now be reasonable for simple sentences.</p>
 
         <textarea id="input" rows="4" placeholder="Type sentence here..."></textarea>
 
@@ -26,16 +26,16 @@
             <option value="dup2en">Duployan → English</option>
         </select>
 
-        <button onclick="translate()">Translate</button>
+        <button onclick="translateText()">Translate</button>
         <button onclick="clearAll()">Clear</button>
 
         <div id="output"></div>
     </div>
 
     <script>
-        // Vocabulary - core from your PDFs + new words you requested
+        // Vocabulary - core + your new requested words
         const vocab = {
-            // Pronouns (core)
+            // Pronouns
             'i':         {dup: '𛱈', pron: 'eeh'},
             'you':       {dup: '𛰑𛱑', pron: 'th-u'},
             'he':        {dup: '𛰀𛱆', pron: 'hee'},
@@ -44,7 +44,7 @@
             'they':      {dup: '𛰑𛱒', pron: 'th-eu'},
             'it':        {dup: '𛱋𛰑', pron: 'eeh-th'},
 
-            // Verbs (core)
+            // Core verbs
             'be':        {dup: '𛰑𛱁', pron: 'tha'},
             'have':      {dup: '𛰙𛱆', pron: 'mee'},
             'go':        {dup: '𛰅𛣼', pron: 'ko'},
@@ -56,45 +56,43 @@
             'make':      {dup: '𛰙𛱁𛰅', pron: 'mak'},
             'use':       {dup: '𛰑𛱕𛰜', pron: 'th-oos'},
 
-            // New requested words (logical creations based on your phonotactics & patterns)
-            'keep':      {dup: '𛰚𛱕𛰋', pron: 'keep'},     // using 'noo' + 'r' elements for "hold/keep"
-            'down':      {dup: '𛰇𛱑𛰅', pron: 'buk'},       // from earlier "down" = buk
-            'here':      {dup: '𛱈𛰋', pron: 'eehr'},        // from earlier "here"
-            'your':      {dup: '𛱆𛰜𛣼', pron: 'eeso'},      // possessive extension
-            'leave':     {dup: '𛱂𛰄', pron: 'owuhf'},        // "leave/go away"
+            // New words you requested (logical Duployan forms)
+            'keep':      {dup: '𛰚𛱕𛰋', pron: 'noor'},   // "keep/hold"
+            'down':      {dup: '𛰇𛱑𛰅', pron: 'buk'},
+            'here':      {dup: '𛱈𛰋', pron: 'eehr'},
+            'your':      {dup: '𛱆𛰜𛣼', pron: 'eeso'},
+            'leave':     {dup: '𛱂𛰄', pron: 'owuhf'},
 
-            // Time & more (partial - add as needed)
+            // Time & particles
             'now':       {dup: '𛰑', pron: 'th'},
             'before':    {dup: '𛰃𛱂', pron: 'tow-uh'},
             'after':     {dup: '𛰋𛱁', pron: 'ra'},
-            'always':    {dup: '𛰜𛣼𛰆', pron: 'sol'},
-            'never':     {dup: '𛰚𛱁𛰜', pron: 'nas'},
-
-            // Particles
             'past':      {dup: '𛰃𛱂', pron: 'tow-uh'},
             'future':    {dup: '𛰋𛱁', pron: 'ra'},
             'progressive': {dup: '𛰜𛱆', pron: 'see'}
         };
 
         const dupToEng = {};
-        for (let key in vocab) dupToEng[vocab[key].dup] = key;
+        for (let eng in vocab) {
+            dupToEng[vocab[eng].dup] = eng;
+        }
 
-        function translate() {
+        function translateText() {
             const text = document.getElementById('input').value.trim();
             const dir = document.getElementById('dir').value;
-            let result = '';
+            let output = '';
 
             if (!text) {
-                result = 'Enter a sentence first.';
+                output = 'Please enter a sentence.';
             } else if (dir === 'en2dup') {
-                const [dup, pron] = engToDup(text);
-                result = `Duployan: ${dup}\nPronunciation: ${pron}`;
+                const [dup, pron] = englishToDuployan(text);
+                output = `Duployan: ${dup}\nPronunciation: ${pron}`;
             } else {
-                const eng = dupToEngF(text);
-                result = `English: ${eng}`;
+                const eng = duployanToEnglish(text);
+                output = `English: ${eng}`;
             }
 
-            document.getElementById('output').textContent = result;
+            document.getElementById('output').textContent = output;
         }
 
         function clearAll() {
@@ -102,48 +100,66 @@
             document.getElementById('output').textContent = '';
         }
 
-        function engToDup(sentence) {
-            let words = sentence.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/);
+        function englishToDuployan(sentence) {
+            let words = sentence.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
             let tense = 'current';
             if (words.includes('will')) tense = 'future';
-            if (words.some(w => ['was','did','had','went'].includes(w))) tense = 'past';
+            if (words.some(w => ['was', 'did', 'had', 'went', 'made'].includes(w))) tense = 'past';
 
-            let subject = null, verb = null, objs = [], rest = [];
+            let subject = null;
+            let verb = null;
+            let objects = [];
 
             for (let w of words) {
                 if (vocab[w]) {
-                    if (['i','you','he','she','we','they','it'].includes(w)) subject = w;
-                    else if (!verb && ['be','have','go','come','see','say','learn','know','make','use','keep','leave'].includes(w)) verb = w;
-                    else objs.push(w);
-                } else rest.push(w);
+                    if (['i','you','he','she','we','they','it'].includes(w)) {
+                        subject = w;
+                    } else if (!verb && ['be','have','go','come','see','say','learn','know','make','use','keep','leave'].includes(w)) {
+                        verb = w;
+                    } else {
+                        objects.push(w);
+                    }
+                }
             }
 
-            if (!verb || !subject) return ['Parse failed - need subject + verb', ''];
+            if (!subject || !verb) {
+                return ['Could not parse - needs subject + verb', ''];
+            }
 
-            let dup = [vocab[tense].dup, vocab[verb].dup, vocab[subject].dup];
-            if (objs.length) dup.push(objs.map(w => vocab[w]?.dup || w + '?').join(' '));
+            let dupParts = [vocab[tense].dup, vocab[verb].dup, vocab[subject].dup];
+            if (objects.length) {
+                dupParts.push(objects.map(w => vocab[w]?.dup || w).join(' '));
+            }
 
-            let pron = [vocab[tense].pron, vocab[verb].pron, vocab[subject].pron];
-            if (objs.length) pron.push(objs.map(w => vocab[w]?.pron || w).join(' '));
+            let pronParts = [vocab[tense].pron, vocab[verb].pron, vocab[subject].pron];
+            if (objects.length) {
+                pronParts.push(objects.map(w => vocab[w]?.pron || w).join(' '));
+            }
 
-            return [dup.filter(Boolean).join(' '), pron.filter(Boolean).join(' - ')];
+            return [dupParts.filter(Boolean).join(' '), pronParts.filter(Boolean).join(' - ')];
         }
 
-        function dupToEngF(dupStr) {
-            let tokens = dupStr.split(/\s+/).filter(t => t);
-            if (tokens.length < 2) return 'Invalid input';
+        function duployanToEnglish(dupStr) {
+            let tokens = dupStr.split(/\s+/).filter(Boolean);
+            if (tokens.length < 2) return 'Invalid Duployan (too short)';
 
-            let tense = dupToEng[tokens[0]] || 'current';
-            let verb = dupToEng[tokens[1]] || '?';
-            let subject = dupToEng[tokens[2]] || '?';
-            let obj = tokens.slice(3).map(t => dupToEng[t] || t).join(' ');
+            let tenseDup = tokens[0];
+            let verbDup = tokens[1];
+            let subjDup = tokens[2];
+            let objs = tokens.slice(3);
 
-            let out = `${subject} ${verb}`;
-            if (obj) out += ` ${obj}`;
-            if (tense === 'past') out = `${subject} did ${verb} ${obj}`;
-            if (tense === 'future') out = `${subject} will ${verb} ${obj}`;
+            let tense = dupToEng[tenseDup] || 'current';
+            let verb = dupToEng[verbDup] || '[unknown]';
+            let subject = dupToEng[subjDup] || '[unknown]';
+            let objStr = objs.map(t => dupToEng[t] || t).join(' ');
 
-            return out.trim() || 'Translation incomplete';
+            let result = `${subject} ${verb}`;
+            if (objStr) result += ` ${objStr}`;
+
+            if (tense === 'past') result = `${subject} did ${verb} ${objStr}`;
+            if (tense === 'future') result = `${subject} will ${verb} ${objStr}`;
+
+            return result.trim() || 'Could not reconstruct English';
         }
     </script>
 </body>
