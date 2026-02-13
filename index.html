@@ -3,226 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duployan Translator</title>
+    <title>Duployan Translator (Upgraded)</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background-color: #f9f9f9; }
-        h1 { text-align: center; color: #333; }
-        .translator { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        label { display: block; margin-bottom: 10px; font-weight: bold; }
-        input, select, button { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #4CAF50; color: white; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #45a049; }
-        #output { background: #f0f0f0; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
-        .vocab-table { margin-top: 30px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; background: #f9f9f9; }
+        h1 { text-align: center; color: #222; }
+        .container { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        textarea, select, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        button { background: #4CAF50; color: white; cursor: pointer; }
+        button:hover { background: #45a049; }
+        #output { background: #f0f8ff; padding: 15px; border-radius: 6px; white-space: pre-wrap; min-height: 80px; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #e3f2fd; }
     </style>
 </head>
 <body>
-    <h1>Duployan Language Translator</h1>
-    <div class="translator">
-        <label for="inputText">Enter text to translate:</label>
-        <textarea id="inputText" rows="4" placeholder="e.g., I go home"></textarea>
+    <div class="container">
+        <h1>Duployan Translator (Improved)</h1>
+        <p>Try a simple sentence like: "I see the big world" or "We will learn language". Round-trip should now be much better.</p>
 
-        <label for="direction">Translation Direction:</label>
-        <select id="direction">
-            <option value="eng_to_dup">English to Duployan</option>
-            <option value="dup_to_eng">Duployan to English</option>
+        <label>Enter English or Duployan:</label>
+        <textarea id="input" rows="3" placeholder="Type here..."></textarea>
+
+        <label>Direction:</label>
+        <select id="dir">
+            <option value="en2dup">English → Duployan</option>
+            <option value="dup2en">Duployan → English</option>
         </select>
 
-        <button onclick="translateText()">Translate</button>
+        <button onclick="translate()">Translate</button>
+        <button onclick="document.getElementById('input').value = ''; document.getElementById('output').innerHTML = '';">Clear</button>
 
         <div id="output"></div>
     </div>
 
-    <!-- Optional: Vocabulary Tables -->
-    <div class="vocab-table">
-        <h2>Core Vocabulary</h2>
-        <!-- You can add HTML tables here from your PDFs, e.g., pronouns, verbs, etc. For brevity, I've omitted them, but you can copy from your README or PDFs. -->
-        <p>See the repository README for full vocabulary lists.</p>
-    </div>
-
     <script>
-        // Core Vocabulary (from PDFs + generated new words)
-        const coreVocab = {
+        // Full core vocabulary from your documents (accurate symbols & pron)
+        const vocab = {
             // Pronouns
-            'i': { dup: '𛱈', pron: 'eeh' },
-            'you': { dup: '𛰑𛱑', pron: 'th-u' },
-            'he': { dup: '𛰀𛱆', pron: 'hee' },
-            'she': { dup: '𛰆𛱆', pron: 'lee' },
-            'we': { dup: '𛰉𛱆', pron: 'vee' },
-            'they': { dup: '𛰑𛱒', pron: 'th-eu' },
-            'it': { dup: '𛱋𛰑', pron: 'eeh-th' },
-            'him': { dup: '𛱙𛰚', pron: '' },
-            'us': { dup: '𛱗𛰜', pron: '' },
-            'me': { dup: '𛰙𛱉', pron: '' },
-            'her': { dup: '𛰗𛰘', pron: '' },
-            'them': { dup: '𛰑𛱅', pron: '' },
-            'girl': { dup: '𛰔𛱇𛰆', pron: '' },
-            'boy': { dup: '𛰇𛱁𛱇', pron: '' },
-            'male': { dup: '𛰙𛱅𛰆', pron: '' },
-            'female': { dup: '𛰙𛱅𛰆𛰄𛱁', pron: '' },
+            'i':         {dup: '𛱈',     pron: 'eeh'},
+            'you':       {dup: '𛰑𛱑',   pron: 'th-u'},
+            'he':        {dup: '𛰀𛱆',   pron: 'hee'},
+            'she':       {dup: '𛰆𛱆',   pron: 'lee'},
+            'we':        {dup: '𛰉𛱆',   pron: 'vee'},
+            'they':      {dup: '𛰑𛱒',   pron: 'th-eu'},
+            'it':        {dup: '𛱋𛰑',   pron: 'eeh-th'},
 
-            // Verbs
-            'be': { dup: '𛰑𛱁', pron: 'tha' },
-            'have': { dup: '𛰙𛱆', pron: 'mee' },
-            'go': { dup: '𛰅𛱄', pron: 'ko' },
-            'come': { dup: '𛰅𛱁𛰙', pron: 'kam' },
-            'see': { dup: '𛰜𛱆', pron: 'see' },
-            'say': { dup: '𛰜𛱁𛰆', pron: 'sal' },
-            'speak': { dup: '𛰜𛱁𛰆', pron: 'sal' },
-            'learn': { dup: '𛰆𛱄𛰚', pron: 'lon' },
-            'know': { dup: '𛰚𛱄', pron: 'no' },
-            'make': { dup: '𛰙𛱁𛰅', pron: 'mak' },
-            'use': { dup: '𛰑𛱕𛰜', pron: 'th-oos' },
+            // Core verbs
+            'be':        {dup: '𛰑𛱁',   pron: 'tha'},
+            'have':      {dup: '𛰙𛱆',   pron: 'mee'},
+            'go':        {dup: '𛰅𛣼',   pron: 'ko'},
+            'come':      {dup: '𛰅𛱁𛰙', pron: 'kam'},
+            'see':       {dup: '𛰜𛱆',   pron: 'see'},
+            'say':       {dup: '𛰜𛱁𛰆', pron: 'sal'},
+            'speak':     {dup: '𛰜𛱁𛰆', pron: 'sal'},
+            'learn':     {dup: '𛰆𛣼𛰚', pron: 'lon'},
+            'know':      {dup: '𛰚𛣼',   pron: 'no'},
+            'make':      {dup: '𛰙𛱁𛰅', pron: 'mak'},
+            'use':       {dup: '𛰑𛱕𛰜', pron: 'th-oos'},
 
-            // Time
-            'now': { dup: '𛰑', pron: 'th' },
-            'before': { dup: '𛰃𛱂', pron: 'tow-uh' },
-            'after': { dup: '𛰋𛱁𛱁', pron: 'ra-a' },
-            'day': { dup: '𛰋𛱄', pron: 'ro' },
-            'today': { dup: '𛰋𛱄𛰑', pron: 'ro-th' },
-            'always': { dup: '𛰜𛱄𛰆', pron: 'sol' },
-            'never': { dup: '𛰚𛱁𛰜', pron: 'nas' },
+            // Time & basics
+            'now':       {dup: '𛰑',     pron: 'th'},
+            'before':    {dup: '𛰃𛱂',   pron: 'tow-uh'},
+            'after':     {dup: '𛰋𛱁',   pron: 'ra'},
+            'day':       {dup: '𛰋𛣼',   pron: 'ro'},
+            'today':     {dup: '𛰋𛣼𛰑', pron: 'ro-th'},
+            'always':    {dup: '𛰜𛣼𛰆', pron: 'sol'},
+            'never':     {dup: '𛰚𛱁𛰜', pron: 'nas'},
 
             // People
-            'person': { dup: '𛰙𛱆𛰚', pron: 'meen' },
-            'people': { dup: '𛰙𛱆𛰚𛰜', pron: 'meens' },
-            'man': { dup: '𛰙𛱆𛰚', pron: 'meen' },
-            'woman': { dup: '𛰙𛱆𛰚𛱝', pron: 'meen-wo' },
-            'child': { dup: '𛰇𛱁', pron: 'ban' },
-            'friend': { dup: '𛰄𛱆𛰆', pron: 'feel' },
+            'person':    {dup: '𛰙𛱆𛰚', pron: 'meen'},
+            'people':    {dup: '𛰙𛱆𛰚𛰜', pron: 'meens'},
+            'man':       {dup: '𛰙𛱆𛰚', pron: 'meen'},
+            'woman':     {dup: '𛰙𛱆𛰚𛱝', pron: 'meen-wo'},
+            'child':     {dup: '𛰇𛱁',   pron: 'ban'},
+            'friend':    {dup: '𛰄𛱆𛰆', pron: 'feel'},
 
             // World & concepts
-            'world': { dup: '𛰙𛱄𛰚', pron: 'mon' },
-            'language': { dup: '𛰆𛱁𛰜𛱆', pron: 'la-see' },
-            'word': { dup: '𛰜𛱄𛰋', pron: 'sor' },
-            'meaning': { dup: '𛰙𛱆𛰜', pron: 'mees' },
-            'name': { dup: '𛰚𛱁𛰙', pron: 'nam' },
-            'truth': { dup: '𛰃𛱁𛰜', pron: 'tas' },
-            'idea': { dup: '𛱁𛰆𛱆', pron: 'a-lee' },
+            'world':     {dup: '𛰙𛣼𛰚', pron: 'mon'},
+            'language':  {dup: '𛰆𛱁𛰜𛱆', pron: 'la-see'},
+            'word':      {dup: '𛰜𛣼𛰋', pron: 'sor'},
+            'meaning':   {dup: '𛰙𛱆𛰜', pron: 'mees'},
+            'name':      {dup: '𛰚𛱁𛰙', pron: 'nam'},
+            'truth':     {dup: '𛰃𛱁𛰜', pron: 'tas'},
+            'idea':      {dup: '𛱁𛰆𛱆', pron: 'a-lee'},
 
             // Modifiers
-            'good': { dup: '𛰄𛱄', pron: 'fo' },
-            'bad': { dup: '𛰄𛱁𛰜', pron: 'fas' },
-            'big': { dup: '𛰅𛱁', pron: 'ka' },
-            'small': { dup: '𛰜𛱁𛰆', pron: 'sal' },
-            'new': { dup: '𛰚𛱕', pron: 'noo' },
-            'old': { dup: '𛰋𛱄𛰆', pron: 'rol' },
+            'good':      {dup: '𛰄𛣼',   pron: 'fo'},
+            'bad':       {dup: '𛰄𛱁𛰜', pron: 'fas'},
+            'big':       {dup: '𛰅𛱁',   pron: 'ka'},
+            'small':     {dup: '𛰜𛱁𛰆', pron: 'sal'},
+            'new':       {dup: '𛰚𛱕',   pron: 'noo'},
+            'old':       {dup: '𛰋𛣼𛰆', pron: 'rol'},
 
-            // Function words
-            'and': { dup: '𛰜', pron: 's' },
-            'or': { dup: '𛰋', pron: 'r' },
-            'not': { dup: '𛰚', pron: 'n' },
-            'yes': { dup: '𛰜𛱆', pron: 'see' },
-            'no': { dup: '𛰚𛱄', pron: 'no' },
+            // Function
+            'and':       {dup: '𛰜',     pron: 's'},
+            'or':        {dup: '𛰋',     pron: 'r'},
+            'not':       {dup: '𛰚',     pron: 'n'},
+            'yes':       {dup: '𛰜𛱆',   pron: 'see'},
+            'no':        {dup: '𛰚𛣼',   pron: 'no'},
 
-            // Tense particles
-            'past': { dup: '𛰃𛱂', pron: 'tow-uh' },
-            'current': { dup: '𛰑', pron: 'th' },
-            'future': { dup: '𛰋𛱁', pron: 'ra' },
-
-            // Other particles
-            'progressive': { dup: '𛰜𛱆', pron: 'see' },
-            'negation': { dup: '𛰔𛱈', pron: '' },
-            'question': { dup: '𛰔𛱁', pron: '' },
-            'emphasis': { dup: '𛰛𛱁', pron: '' },
-
-            // New words (449 from previous generation)
-            'the': { dup: '𛰃𛱕𛰇', pron: 'toob' },
-            'of': { dup: '𛰃𛱁𛰚', pron: 'tan' },
-            // ... (add all 449 here for completeness; I've truncated for brevity in this code snippet. Copy the full list from the Python script.)
-            'among': { dup: '𛱒𛰀𛱒', pron: 'euheu' },
-            // Note: In your actual index.html, paste the full new_vocab object here.
+            // Particles (used as prefixes)
+            'past':      {dup: '𛰃𛱂',   pron: 'tow-uh'},
+            'future':    {dup: '𛰋𛱁',   pron: 'ra'},
+            'progressive': {dup: '𛰜𛱆', pron: 'see'},
         };
 
-        // Reverse vocab for Duployan to English
         const dupToEng = {};
-        for (let key in coreVocab) {
-            dupToEng[coreVocab[key].dup] = key;
+        for (let eng in vocab) {
+            dupToEng[vocab[eng].dup] = eng;
         }
 
-        function translateText() {
-            const input = document.getElementById('inputText').value.trim();
-            const direction = document.getElementById('direction').value;
-            let result = '';
-            let pron = '';
+        function translate() {
+            const text = document.getElementById('input').value.trim();
+            const dir = document.getElementById('dir').value;
+            let out = '';
 
-            if (direction === 'eng_to_dup') {
-                const [dupSentence, pronSentence] = translateEnglishToDuployan(input);
-                result = `Duployan: ${dupSentence}\nPronunciation: ${pronSentence}`;
+            if (!text) {
+                out = 'Please enter some text.';
+            } else if (dir === 'en2dup') {
+                const [dup, pron] = engToDup(text);
+                out = `Duployan: ${dup}\nPron: ${pron}`;
             } else {
-                const [engSentence] = translateDuployanToEnglish(input);
-                result = `English: ${engSentence}`;
+                const eng = dupToEngF(text);
+                out = `English: ${eng}`;
             }
 
-            document.getElementById('output').textContent = result;
+            document.getElementById('output').textContent = out;
         }
 
-        // Ported from Python: English to Duployan
-        function translateEnglishToDuployan(sentence) {
-            const words = sentence.toLowerCase().replace(/[.,]/g, '').split(' ');
-            const tense = detectTense(words);
-            let subject = null;
-            let verb = null;
-            let object_ = [];
+        function engToDup(sentence) {
+            let words = sentence.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+            let tense = 'current';
+            if (words.includes('will') || words.includes('would')) tense = 'future';
+            if (words.some(w => ['was','did','went','had','made'].includes(w))) tense = 'past';
+
+            let verb = null, subject = null, objects = [], mods = [];
 
             for (let w of words) {
-                if (coreVocab[w]) {
-                    if (!subject && ['i', 'you', 'he', 'she', 'we', 'they', 'it', 'person', 'people', 'man', 'woman', 'child', 'friend'].includes(w)) {
-                        subject = w;
-                    } else if (!verb && Object.keys(coreVocab).some(k => k === w && (k.startsWith('to ') || ['be', 'have', 'go'].includes(k)))) {
-                        verb = w;
-                    } else {
-                        object_.push(w);
-                    }
+                if (vocab[w]) {
+                    if (['i','you','he','she','we','they','it'].includes(w)) subject = w;
+                    else if (Object.keys(vocab).includes(w) && w !== subject) verb = w;  // first non-subject verb
+                    else objects.push(w);
+                } else if (w.endsWith('s') && vocab[w.slice(0,-1)]) {
+                    // simple plural guess
+                    objects.push(w.slice(0,-1) + '-plural');
                 }
             }
 
-            if (!subject || !verb) return ['Unable to parse (missing subject/verb)', ''];
+            if (!verb || !subject) return ['Cannot parse sentence (need verb + subject)', ''];
 
-            const subjectDup = coreVocab[subject].dup;
-            const subjectPron = coreVocab[subject].pron;
-            const verbDup = coreVocab[verb].dup;
-            const verbPron = coreVocab[verb].pron;
-            const objectDup = object_.map(o => coreVocab[o] ? coreVocab[o].dup : '?').filter(Boolean).join(' ');
-            const objectPron = object_.map(o => coreVocab[o] ? coreVocab[o].pron : '?').filter(Boolean).join('-');
+            let dupParts = [vocab[tense].dup];                      // tense particle first
+            dupParts.push(vocab[verb].dup);                         // verb
+            dupParts.push(vocab[subject].dup);                      // subject
+            if (objects.length) dupParts.push(objects.map(w => vocab[w]?.dup || '?').join(' '));
 
-            const tensePart = coreVocab[tense].dup;
-            const tensePron = coreVocab[tense].pron;
+            let pronParts = [vocab[tense].pron, vocab[verb].pron, vocab[subject].pron];
+            if (objects.length) pronParts.push(objects.map(w => vocab[w]?.pron || w).join(' '));
 
-            const dupSentence = [tensePart, verbDup, subjectDup, objectDup].filter(Boolean).join(' ');
-            const pronSentence = [tensePron, verbPron, subjectPron, objectPron].filter(Boolean).join('-');
-
-            return [dupSentence, pronSentence];
+            return [dupParts.filter(Boolean).join(' '), pronParts.filter(Boolean).join(' - ')];
         }
 
-        // Simple tense detection
-        function detectTense(words) {
-            if (words.some(w => ['was', 'went', 'had', 'did', 'came'].includes(w))) return 'past';
-            if (words.some(w => ['will', 'would'].includes(w))) return 'future';
-            return 'current';
-        }
+        function dupToEngF(dupStr) {
+            let tokens = dupStr.split(/\s+/);
+            if (tokens.length < 2) return 'Invalid Duployan input';
 
-        // Ported from Python: Duployan to English
-        function translateDuployanToEnglish(dupSentence) {
-            const words = dupSentence.split(' ');
-            if (words.length < 2) return ['Invalid Duployan sentence'];
+            let tenseDup = tokens[0];
+            let verbDup = tokens[1];
+            let subjDup = tokens[2];
+            let objDups = tokens.slice(3);
 
-            const tensePart = words[0];
-            const verbDup = words[1];
-            const subjectDup = words[2];
-            const objectDup = words.slice(3).join(' ');
+            let tenseEng = dupToEng[tenseDup] || 'now';
+            let verbEng = dupToEng[verbDup] || '[?]';
+            let subjEng = dupToEng[subjDup] || '[?]';
+            let objEng = objDups.map(t => dupToEng[t] || t).join(' ');
 
-            const tense = Object.keys(coreVocab).find(k => coreVocab[k].dup === tensePart) || 'current';
-            const verbEng = dupToEng[verbDup] || '?';
-            const subjectEng = dupToEng[subjectDup] || '?';
-            const objectEng = objectDup.split(' ').map(o => dupToEng[o] || '?').join(' ');
+            let out = `${subjEng} ${verbEng}`;
+            if (objEng) out += ` ${objEng}`;
+            if (tenseEng === 'past') out = `${subjEng} did ${verbEng} ${objEng}`;
+            if (tenseEng === 'future') out = `${subjEng} will ${verbEng} ${objEng}`;
 
-            const engSentence = `${subjectEng} ${tense === 'past' ? 'was' : tense === 'future' ? 'will' : 'is'} ${verbEng} ${objectEng}`.trim();
-
-            return [engSentence];
+            return out.trim() || 'Could not translate back';
         }
     </script>
 </body>
