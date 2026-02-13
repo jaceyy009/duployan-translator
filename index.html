@@ -39,6 +39,9 @@
 
     <script>
         // Full core vocabulary from your documents (accurate symbols & pron)
+        const verbs = [
+            'be', 'have', 'go', 'come', 'see', 'say', 'speak', 'learn', 'know', 'make', 'use'
+            ];
         const vocab = {
             // Pronouns
             'i':         {dup: '𛱈',     pron: 'eeh'},
@@ -132,25 +135,61 @@
             document.getElementById('output').textContent = out;
         }
 
-        function engToDup(sentence) {
-            let words = sentence.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-            let tense = 'current';
-            if (words.includes('will') || words.includes('would')) tense = 'future';
-            if (words.some(w => ['was','did','went','had','made'].includes(w))) tense = 'past';
+                function engToDup(sentence) {
+    let words = sentence
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .split(/\s+/);
 
-            let verb = null, subject = null, objects = [], mods = [];
+    let tense = null;
+    if (words.includes('will') || words.includes('would')) tense = 'future';
+    if (words.some(w => ['was','did','went','had','made'].includes(w))) tense = 'past';
 
-            for (let w of words) {
-                if (vocab[w]) {
-                    if (['i','you','he','she','we','they','it'].includes(w)) subject = w;
-                    else if (Object.keys(vocab).includes(w) && w !== subject) verb = w;  // first non-subject verb
-                    else objects.push(w);
-                } else if (w.endsWith('s') && vocab[w.slice(0,-1)]) {
-                    // simple plural guess
-                    objects.push(w.slice(0,-1) + '-plural');
-                }
-            }
+    let subject = null;
+    let verb = null;
+    let objects = [];
 
+    for (let w of words) {
+        if (!subject && ['i','you','he','she','we','they','it'].includes(w)) {
+            subject = w;
+        } 
+        else if (!verb && verbs.includes(w)) {
+            verb = w;
+        } 
+        else if (vocab[w] && w !== subject && w !== verb) {
+            objects.push(w);
+        }
+    }
+
+    if (!subject || !verb) {
+        return ['Cannot parse sentence (need subject + verb)', ''];
+    }
+
+    let dupParts = [];
+    let pronParts = [];
+
+    if (tense && vocab[tense]) {
+        dupParts.push(vocab[tense].dup);
+        pronParts.push(vocab[tense].pron);
+    }
+
+    dupParts.push(vocab[verb].dup);
+    dupParts.push(vocab[subject].dup);
+
+    pronParts.push(vocab[verb].pron);
+    pronParts.push(vocab[subject].pron);
+
+    if (objects.length) {
+        dupParts.push(objects.map(w => vocab[w]?.dup || '?').join(' '));
+        pronParts.push(objects.map(w => vocab[w]?.pron || w).join(' '));
+    }
+
+    return [
+        dupParts.join(' '),
+        pronParts.join(' - ')
+    ];
+}
+                
             if (!verb || !subject) return ['Cannot parse sentence (need verb + subject)', ''];
 
             let dupParts = [vocab[tense].dup];                      // tense particle first
